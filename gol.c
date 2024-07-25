@@ -33,12 +33,15 @@ typedef struct
 #define GRID_AXIS_THICKNESS 0.9f
 #define GRID_AXIS_COLOR RAYWHITE
 
-// Camera 
+// CAMERA
 #define DEFAULT_ZOOM 0.9f
 #define CAM_MOV_RATE 5.0f
 #define ZOOM_RATE 0.1f
 #define ZOOM_MIN 0.75f
 #define ZOOM_MAX 10.0f
+
+// HELPER MACRO
+#define ARRAY_LEN(xs) (sizeof(xs) / sizeof(xs[0]))
 
 
 // PROTOTYPES
@@ -60,16 +63,26 @@ static Cell NextGrid[GRID_WIDTH][GRID_HEIGHT];
 bool paused = true;
 Vector2 middle = (Vector2){WWIDTH / 2, WHEIGHT / 2};
 
+const char *musicPaths[3] = {
+    "assets/epic-hollywood-trailer-9489.mp3",
+    "assets/honor-and-sword-main-11222.mp3", 
+    "assets/winning-elevation-111355.mp3"
+};
+
+unsigned int musicCount = 3;
+unsigned int currentMusicIndex = 0;
+
 int main(void)
 {   
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
     InitWindow(WWIDTH, WHEIGHT, "CONWAY`S GAME OF LIFE");
+    InitAudioDevice();          
     SetTraceLogLevel(LOG_FATAL);
     SetTargetFPS(60);
 
     srand(time(NULL));  // Seed random number generator once
     
-    // Camera 
+    // Camera Initialize and setup
     Camera2D cam = {0};
     cam.offset = middle;
     cam.target = middle;
@@ -77,8 +90,12 @@ int main(void)
 
     float updateInterval = 0.05f;
     float timeSinceLastUpdate = 0.0f;
+    const char *currentMusicPath = musicPaths[currentMusicIndex % musicCount];
+    
     InitializeGrid(false);
     RandomizeGrid(0.5);
+    Music music = LoadMusicStream(currentMusicPath);
+    PlayMusicStream(music);
 
     while (!WindowShouldClose())
     {   
@@ -87,6 +104,17 @@ int main(void)
 
         HandleInput(cam, updateInterval, &timeSinceLastUpdate);  
         HandleCamera(&cam);
+
+        UpdateMusicStream(music);
+        
+        // Pause/Resume music playing
+        if (IsKeyPressed(KEY_SPACE))
+        {
+            if (paused) PauseMusicStream(music);
+            else ResumeMusicStream(music);
+        }
+
+        if (GetMusicTimePlayed(music) == GetMusicTimeLength(music))             currentMusicIndex++;
 
         BeginDrawing();
             BeginMode2D(cam);

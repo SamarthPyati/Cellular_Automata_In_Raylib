@@ -18,10 +18,16 @@ I implemented [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_G
    Follow the installation instructions on the [Raylib website](https://www.raylib.com/).
 
 3. **Compile the Code:**
-   You can compile the project using a C compiler. If you're using GCC on Windows, use the following command:
+   - You can compile the project using a C compiler. If you're using GCC on Windows, use the following command:
    ```bash
-   gcc -o game_of_life main.c -lraylib -lgdi32 -lopengl32 -lm
+   gcc -o game_of_life gol.c -lraylib -lgdi32 -lopengl32 -lm
    ```
+
+    - On linux / mac operating systems: 
+    ```bash
+   gcc $(pkg-config --libs --cflags raylib) -lm -o game_of_life gol.c 
+   ```  
+
    Make sure to replace `main.c` with the appropriate file name if necessary.
 
 ## Usage
@@ -30,7 +36,7 @@ I implemented [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_G
    - Build the program.
    - Execute the compiled binary:
      ```bash
-     ./game_of_life
+     ./game-of-life
      ```
 
 2. **Controls:**
@@ -45,6 +51,7 @@ I implemented [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_G
    | C               | Clear the grid |
    | Z               | Reset camera position and rotation |
    | Left Shift + Z  | Reset camera position, rotation, and zoom |
+   | Esc             | Quit the program | 
 
 ## Upcoming Features
 
