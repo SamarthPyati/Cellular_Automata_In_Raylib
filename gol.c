@@ -1,3 +1,9 @@
+/*
+** A Simple Implementation of Conway`s game of life. **
+    - Author: Samarth Sanjay Pyati
+    - Date: 23-07-2024
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
