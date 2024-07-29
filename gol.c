@@ -14,14 +14,31 @@
 const size_t WWIDTH = 1440;
 const size_t WHEIGHT = 900;
 
-#define BG_COLOR (Color) {39, 41, 40, 255}
+// #define BG_COLOR (Color) {39, 41, 40, 255}
+#define BG_COLOR BLACK
+
+// SIMULATION MODE 
+typedef enum {
+    CONWAY,
+    BRIAN,
+} GameMode;    
+
+typedef enum {
+    OFF,
+    ON,
+    DYING
+} CellState;
 
 // CELL
 typedef struct 
 {
     Vector2 pos;
-    bool alive;
+    union {
+        bool alive;  // For Conway's Game of Life
+        CellState state;  // For Brian's Brain
+    };
 } Cell;
+
 
 #define CELL_SIZE 5                 
 
@@ -29,12 +46,12 @@ typedef struct
 #define GRID_WIDTH (WWIDTH / CELL_SIZE)
 #define GRID_HEIGHT (WHEIGHT / CELL_SIZE)
 #define GRID_LINE_THICKNESS 0.2f
-#define GRID_LINE_COLOR RAYWHITE
+#define GRID_LINE_COLOR WHITE
 #define GRID_AXIS_THICKNESS 0.9f
-#define GRID_AXIS_COLOR RAYWHITE
+#define GRID_AXIS_COLOR WHITE
 
 // CAMERA
-#define DEFAULT_ZOOM 0.9f
+#define DEFAULT_ZOOM 1.0f
 #define CAM_MOV_RATE 5.0f
 #define ZOOM_RATE 0.1f
 #define ZOOM_MIN 0.75f
@@ -46,7 +63,7 @@ typedef struct
 
 // PROTOTYPES
 void InitializeGrid(bool _alive);                       
-void DrawGameGrid(void);       
+void DrawGameGrid(Camera2D *cam);       
 void IlluminateGrid(void);
 unsigned int GetNeighbors(size_t x, size_t y);
 void UpdateGrid(void);
@@ -55,12 +72,15 @@ void ClearGrid(void);
 float randf(void);   
 size_t GetPopulation(void);
 void HandleInput(Camera2D cam, float interval, float *timeSinceLastUpdate);     
-void HandleCamera(Camera2D *cam);                  
+void HandleCamera(Camera2D *cam);     
+void SwitchRuleSet(void);             
 
 // PROGRAM VARIABLES
 static Cell Grid[GRID_WIDTH][GRID_HEIGHT];
 static Cell NextGrid[GRID_WIDTH][GRID_HEIGHT];
-bool paused = true;
+static GameMode currentGameMode = CONWAY;
+bool paused = false;
+bool drawGrid = true;
 Vector2 middle = (Vector2){WWIDTH / 2, WHEIGHT / 2};
 
 const char *musicPaths[3] = {
@@ -114,12 +134,18 @@ int main(void)
             else ResumeMusicStream(music);
         }
 
-        if (GetMusicTimePlayed(music) == GetMusicTimeLength(music))             currentMusicIndex++;
+        if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music) - 0.1f)  // Use a small threshold
+        {
+            currentMusicIndex = (currentMusicIndex + 1) % musicCount;
+            UnloadMusicStream(music);
+            music = LoadMusicStream(musicPaths[currentMusicIndex]);
+            PlayMusicStream(music);
+        }
 
         BeginDrawing();
+            ClearBackground(BG_COLOR);
             BeginMode2D(cam);
-                ClearBackground(BG_COLOR);
-                DrawGameGrid();
+                DrawGameGrid(&cam);    
                 IlluminateGrid();
             EndMode2D();
 
@@ -128,6 +154,9 @@ int main(void)
             DrawText(TextFormat("Population: %d", GetPopulation()), 10, 50, 20, GREEN);
         EndDrawing();   
     }
+    
+    UnloadMusicStream(music);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
@@ -142,7 +171,8 @@ void HandleInput(Camera2D cam, float interval, float *timeSinceLastUpdate)
 
     if (IsKeyPressed(KEY_C))                    ClearGrid();                // Erase Grid
     if (IsKeyPressed(KEY_SPACE))                paused = !paused;           // toggle pause
-
+    if (IsKeyPressed(KEY_G))                    drawGrid = !drawGrid;
+    if (IsKeyPressed(KEY_B))                    SwitchRuleSet();
 
     // Handle mouse input
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))                            // Select a cell 
@@ -152,7 +182,10 @@ void HandleInput(Camera2D cam, float interval, float *timeSinceLastUpdate)
         size_t y = mousePos.y / CELL_SIZE;
         if (x < GRID_WIDTH && y < GRID_HEIGHT)
         {
-            Grid[x][y].alive = !Grid[x][y].alive;
+            if (currentGameMode == CONWAY)
+                Grid[x][y].alive = !Grid[x][y].alive;
+            else
+                Grid[x][y].state = (Grid[x][y].state == OFF) ? ON : OFF;
         }
     }
 
@@ -201,6 +234,7 @@ void HandleCamera(Camera2D *cam)
         cam->zoom = Clamp(cam->zoom, ZOOM_MIN, ZOOM_MAX);
     }
 
+
     // Camera Drag
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
     {   
@@ -220,24 +254,30 @@ void InitializeGrid(bool _alive)
     {
         for (size_t j = 0; j < GRID_HEIGHT; ++j)
         {
-            Grid[i][j].alive = _alive;
+            if (currentGameMode == CONWAY)
+                Grid[i][j].alive = _alive;
+            else
+                Grid[i][j].state = OFF;
+            
             Grid[i][j].pos = (Vector2){i * CELL_SIZE, j * CELL_SIZE};
             NextGrid[i][j] = Grid[i][j];
         }
     }
 }
 
-void DrawGameGrid(void)
+void DrawGameGrid(Camera2D *cam)
 {
     for (size_t i = 0; i <= GRID_WIDTH; ++i)
-    {
-        DrawLineEx((Vector2){i * CELL_SIZE, 0}, 
-        (Vector2){i * CELL_SIZE, WHEIGHT}, GRID_LINE_THICKNESS, GRID_LINE_COLOR);
+    {   
+        Vector2 startPos = GetWorldToScreen2D((Vector2){i * CELL_SIZE, 0}, *cam);
+        Vector2 endPos = GetScreenToWorld2D((Vector2){i * CELL_SIZE, WHEIGHT}, *cam);
+        DrawLineEx(startPos, endPos, GRID_LINE_THICKNESS, GRID_LINE_COLOR);
     }
     for (size_t j = 0; j <= GRID_HEIGHT; ++j)
-    {
-        DrawLineEx((Vector2){0, j * CELL_SIZE}, 
-        (Vector2){WWIDTH, j * CELL_SIZE}, GRID_LINE_THICKNESS, GRID_LINE_COLOR);
+    {   
+        Vector2 startPos = GetScreenToWorld2D((Vector2){0, j * CELL_SIZE}, *cam);
+        Vector2 endPos = GetScreenToWorld2D((Vector2){WWIDTH, j * CELL_SIZE}, *cam);
+        DrawLineEx(startPos, endPos, GRID_LINE_THICKNESS, GRID_LINE_COLOR);
     }
     
     // Drawing the Axes lines for reference 
@@ -252,10 +292,13 @@ unsigned int GetNeighbors(size_t x, size_t y)
     {
         for (int j = -1; j <= 1; ++j)
         {
-            if (i == 0 && j == 0) continue;         // current cell skip
+            if (i == 0 && j == 0) continue;
             size_t nx = (x + i + GRID_WIDTH) % GRID_WIDTH;
             size_t ny = (y + j + GRID_HEIGHT) % GRID_HEIGHT;
-            aliveNeighbors += Grid[nx][ny].alive ? 1 : 0;
+            if (currentGameMode == CONWAY)
+                aliveNeighbors += Grid[nx][ny].alive ? 1 : 0;
+            else
+                aliveNeighbors += (Grid[nx][ny].state == ON) ? 1 : 0;
         }
     }
     return aliveNeighbors;
@@ -269,15 +312,29 @@ void UpdateGrid(void)
         {   
             unsigned int aliveNeighbors = GetNeighbors(i, j);
 
-            if (Grid[i][j].alive) {
-                // Rule for live cells:
-                // Underpopulation: A live cell with fewer than 2 live neighbors dies.
-                // Overpopulation: A live cell with more than 3 live neighbors dies.
-                NextGrid[i][j].alive = (aliveNeighbors == 2 || aliveNeighbors == 3);
-            } else {
-                // Rule for dead cells:
-                // Reproduction: A dead cell with exactly 3 live neighbors becomes alive.
-                NextGrid[i][j].alive = (aliveNeighbors == 3);
+            // Conway`s Game of life
+            if (currentGameMode == CONWAY)
+            {
+                if (Grid[i][j].alive) {
+                    NextGrid[i][j].alive = (aliveNeighbors == 2 || aliveNeighbors == 3);
+                } else {
+                    NextGrid[i][j].alive = (aliveNeighbors == 3);
+                }
+            }
+            else  // Brian's Brain
+            {
+                switch(Grid[i][j].state)
+                {
+                    case OFF:
+                        NextGrid[i][j].state = (aliveNeighbors == 2) ? ON : OFF;
+                        break;
+                    case ON:
+                        NextGrid[i][j].state = DYING;
+                        break;
+                    case DYING:
+                        NextGrid[i][j].state = OFF;
+                        break;
+                }
             }
         }
     }
@@ -303,10 +360,24 @@ void RandomizeGrid(float probability)
     {
         for (size_t j = 0; j < GRID_HEIGHT; ++j)
         {
-            Grid[i][j].alive = (randf() < probability);
+            float r = randf();
+            if (currentGameMode == CONWAY)
+            {
+                Grid[i][j].alive = (r < probability);
+            }
+            else  // Brian's Brain
+            {
+                if (r < probability / 2)
+                    Grid[i][j].state = ON;
+                else if (r < probability)
+                    Grid[i][j].state = DYING;
+                else
+                    Grid[i][j].state = OFF;
+            }
         }
     }
 }
+
 
 size_t GetPopulation(void)
 {   
@@ -315,7 +386,14 @@ size_t GetPopulation(void)
     {
         for (size_t j = 0; j < GRID_HEIGHT; ++j)
         {
-            if (Grid[i][j].alive) population++;
+            if (currentGameMode == CONWAY)
+            {
+                if (Grid[i][j].alive) population++;
+            }
+            else  // Brian's Brain
+            {
+                if (Grid[i][j].state == ON) population++;
+            }
         }
     }
     return population;
@@ -327,10 +405,27 @@ void IlluminateGrid(void)
     {
         for (size_t j = 0; j < GRID_HEIGHT; ++j)
         {
-            if (Grid[i][j].alive)
+            Color cellColor;
+            if (currentGameMode == CONWAY)
             {
-                DrawRectangleV(Grid[i][j].pos, (Vector2){CELL_SIZE, CELL_SIZE}, WHITE);
+                cellColor = Grid[i][j].alive ? RAYWHITE : BG_COLOR;
             }
+            else  // Brian's Brain
+            {
+                switch(Grid[i][j].state)
+                {
+                    case ON:
+                        cellColor = RAYWHITE;
+                        break;
+                    case DYING:
+                        cellColor = RED;
+                        break;
+                    case OFF:
+                        cellColor = BG_COLOR;
+                        break;
+                }
+            }
+            DrawRectangleV(Grid[i][j].pos, (Vector2){CELL_SIZE, CELL_SIZE}, cellColor);
         }
     }
 }
@@ -341,7 +436,17 @@ void ClearGrid(void)
     {
         for (size_t j = 0; j < GRID_HEIGHT; ++j)
         {
-            Grid[i][j].alive = false;
+            if (currentGameMode == CONWAY)
+                Grid[i][j].alive = false;
+            else    
+                Grid[i][j].state = OFF;
         }
     }
+}
+
+void SwitchRuleSet(void)
+{
+    currentGameMode = (currentGameMode == CONWAY) ? BRIAN : CONWAY;
+    InitializeGrid(false);
+    RandomizeGrid(0.1);
 }
