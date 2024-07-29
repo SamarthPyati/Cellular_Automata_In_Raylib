@@ -1,5 +1,6 @@
 /*
-** A Simple Implementation of Conway`s game of life. **
+** A Simple Implementation of Cellular Automata Simulation
+    consisting Conway`s game of life & Brain`s Brain. **
     - Author: Samarth Sanjay Pyati
     - Date: 23-07-2024
 */
@@ -34,8 +35,8 @@ typedef struct
 {
     Vector2 pos;
     union {
-        bool alive;  // For Conway's Game of Life
-        CellState state;  // For Brian's Brain
+        bool alive;         // For Conway's Game of Life
+        CellState state;    // For Brian's Brain
     };
 } Cell;
 

@@ -1,17 +1,25 @@
-# Game of Life in Raylib (C)
+# Cellular Automata in Raylib (C)
 
-I implemented [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) using [Raylib](https://github.com/raysan5/raylib), a C library for simple 2D game development.
+I implemented [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) and [Brain`s Brain](https://en.wikipedia.org/wiki/Brian%27s_Brain) using [Raylib](https://github.com/raysan5/raylib).
 
 ## Requirements
 
 - **Raylib**: A C library for simple 2D game development.
 
+## Feature
+
+- Conway's Game of Life implementation
+- Brian's Brain implementation
+- Camera controls (pan and zoom)
+- Grid randomization and clearing
+- Ability to switch between rule sets
+
 ## Installation
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/SamarthPyati/Game-of-Life-in-C.git
-   cd Game-of-Life-in-C
+   git clone https://github.com/SamarthPyati/Cellular_Automata_In_Raylib.git
+   cd Cellular_Automata_In_RayLib
    ```
 
 2. **Install Raylib:**
@@ -20,15 +28,13 @@ I implemented [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_G
 3. **Compile the Code:**
    - You can compile the project using a C compiler. If you're using GCC on Windows, use the following command:
    ```bash
-   gcc -o game_of_life gol.c -lraylib -lgdi32 -lopengl32 -lm
+   gcc -o cellular_automata gol.c -lraylib -lgdi32 -lopengl32 -lm
    ```
 
-    - On linux / mac operating systems: 
+   - On linux / mac operating systems: 
     ```bash
-   gcc $(pkg-config --libs --cflags raylib) -lm -o game_of_life gol.c 
+   gcc $(pkg-config --libs --cflags raylib) -lm -o cellular_automata gol.c 
    ```  
-
-   Make sure to replace `main.c` with the appropriate file name if necessary.
 
 ## Usage
 
@@ -36,7 +42,7 @@ I implemented [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_G
    - Build the program.
    - Execute the compiled binary:
      ```bash
-     ./game-of-life
+     ./cellular_automata
      ```
 
 2. **Controls:**
@@ -51,23 +57,16 @@ I implemented [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_G
    | C               | Clear the grid |
    | Z               | Reset camera position and rotation |
    | Left Shift + Z  | Reset camera position, rotation, and zoom |
+   | B               | Switch the Rules   |
    | Esc             | Quit the program | 
 
 ## Upcoming Features
 
-- [ ] Epic Music Background
 - [ ] Save Game state in files
 - [ ] Colorful gradients to hallucinate
 - [ ] More user friendly UI
-
-## Author
-Samarth Sanjay Pyati
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
-
-- [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
-- [Raylib](https://www.raylib.com/)
